@@ -4,7 +4,7 @@ import datetime as dt
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, and_
 
 from flask import Flask, jsonify
 
@@ -45,7 +45,24 @@ def welcome():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    return
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Query for the dates and precipitation values
+    results =   session.query(Measurement.date, Measurement.prcp).\
+                order_by(Measurement.date).all()
+
+    # Convert to list of dictionaries to jsonify
+    prcp_date_list = []
+
+    for date, prcp in results:
+        new_dict = {}
+        new_dict[date] = prcp
+        prcp_date_list.append(new_dict)
+
+    session.close()
+
+    return jsonify(prcp_date_list)
 
 @app.route("/api/v1.0/stations")
 def stations():
@@ -73,26 +90,69 @@ def tobs():
     last_year_date = (dt.datetime.strptime(last_date[0],'%Y-%m-%d') \
                     - dt.timedelta(days=365)).strftime('%Y-%m-%d')
 
-    # Query for the dates and temperature observations a year from the last data point
-    results =   session.query(Measurement.date, Measurement.prcp).\
+    # Query for the dates and temperature values
+    results =   session.query(Measurement.date, Measurement.tobs).\
                 filter(Measurement.date >= last_year_date).\
                 order_by(Measurement.date).all()
 
     # Convert to list of dictionaries to jsonify
-    prcp_date_list = []
+    tobs_date_list = []
 
-    for date, prcp in results:
+    for date, tobs in results:
         new_dict = {}
-        new_dict[date] = prcp
-        prcp_date_list.append(new_dict)
+        new_dict[date] = tobs
+        tobs_date_list.append(new_dict)
 
     session.close()
- 
-    return jsonify(prcp_date_list)
+
+    return jsonify(tobs_date_list)
+
+@app.route("/api/v1.0/<start>")
+def temp_range_start(start):
+    """TMIN, TAVG, and TMAX from a starting date.
+    
+    Args:
+        start (string): A date string in the format %Y-%m-%d
+        
+    Returns:
+        TMIN, TAVE, and TMAX
+    """
+
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    results =   session.query(  func.min(Measurement.tobs), \
+                                func.avg(Measurement.tobs), \
+                                func.max(Measurement.tobs)).\
+                        filter(Measurement.date >= start).all()
+
+    session.close()    
+
+    return jsonify(results)
 
 @app.route("/api/v1.0/<start>/<end>")
-def temp_range(start,end):
-    return
+def temp_range_start_end(start,end):
+    """TMIN, TAVG, and TMAX for a date range.
+    
+    Args:
+        start (string): A date string in the format %Y-%m-%d
+        end (string): A date string in the format %Y-%m-%d
+        
+    Returns:
+        TMIN, TAVE, and TMAX
+    """
+
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    results =   session.query(  func.min(Measurement.tobs), \
+                                func.avg(Measurement.tobs), \
+                                func.max(Measurement.tobs)).\
+                        filter(and_(Measurement.date >= start, Measurement.date <= end)).all()
+
+    session.close()    
+
+    return jsonify(results)
 
 if __name__ == '__main__':
     app.run(debug=True)
