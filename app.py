@@ -121,14 +121,23 @@ def temp_range_start(start):
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    return_list = []
+
     results =   session.query(  func.min(Measurement.tobs), \
                                 func.avg(Measurement.tobs), \
                                 func.max(Measurement.tobs)).\
                         filter(Measurement.date >= start).all()
 
+    for min, avg, max in results:
+        new_dict = {}
+        new_dict["TMIN"] = min
+        new_dict["TAVG"] = avg
+        new_dict["TMAX"] = max
+        return_list.append(new_dict)
+
     session.close()    
 
-    return jsonify(results)
+    return jsonify(return_list)
 
 @app.route("/api/v1.0/<start>/<end>")
 def temp_range_start_end(start,end):
@@ -145,14 +154,23 @@ def temp_range_start_end(start,end):
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    return_list = []
+
     results =   session.query(  func.min(Measurement.tobs), \
                                 func.avg(Measurement.tobs), \
                                 func.max(Measurement.tobs)).\
                         filter(and_(Measurement.date >= start, Measurement.date <= end)).all()
 
+    for min, avg, max in results:
+        new_dict = {}
+        new_dict["TMIN"] = min
+        new_dict["TAVG"] = avg
+        new_dict["TMAX"] = max
+        return_list.append(new_dict)
+
     session.close()    
 
-    return jsonify(results)
+    return jsonify(return_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
