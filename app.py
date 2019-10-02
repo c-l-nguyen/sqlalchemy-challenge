@@ -109,7 +109,7 @@ def tobs():
 
 @app.route("/api/v1.0/<start>")
 def temp_range_start(start):
-    """TMIN, TAVG, and TMAX from a starting date.
+    """TMIN, TAVG, and TMAX per date starting from a starting date.
     
     Args:
         start (string): A date string in the format %Y-%m-%d
@@ -123,13 +123,16 @@ def temp_range_start(start):
 
     return_list = []
 
-    results =   session.query(  func.min(Measurement.tobs), \
+    results =   session.query(  Measurement.date,\
+                                func.min(Measurement.tobs), \
                                 func.avg(Measurement.tobs), \
                                 func.max(Measurement.tobs)).\
-                        filter(Measurement.date >= start).all()
+                        filter(Measurement.date >= start).\
+                        group_by(Measurement.date).all()
 
-    for min, avg, max in results:
+    for date, min, avg, max in results:
         new_dict = {}
+        new_dict["Date"] = date
         new_dict["TMIN"] = min
         new_dict["TAVG"] = avg
         new_dict["TMAX"] = max
@@ -141,7 +144,7 @@ def temp_range_start(start):
 
 @app.route("/api/v1.0/<start>/<end>")
 def temp_range_start_end(start,end):
-    """TMIN, TAVG, and TMAX for a date range.
+    """TMIN, TAVG, and TMAX per date for a date range.
     
     Args:
         start (string): A date string in the format %Y-%m-%d
@@ -156,13 +159,16 @@ def temp_range_start_end(start,end):
 
     return_list = []
 
-    results =   session.query(  func.min(Measurement.tobs), \
+    results =   session.query(  Measurement.date,\
+                                func.min(Measurement.tobs), \
                                 func.avg(Measurement.tobs), \
                                 func.max(Measurement.tobs)).\
-                        filter(and_(Measurement.date >= start, Measurement.date <= end)).all()
+                        filter(and_(Measurement.date >= start, Measurement.date <= end)).\
+                        group_by(Measurement.date).all()
 
-    for min, avg, max in results:
+    for date, min, avg, max in results:
         new_dict = {}
+        new_dict["Date"] = date
         new_dict["TMIN"] = min
         new_dict["TAVG"] = avg
         new_dict["TMAX"] = max
